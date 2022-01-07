@@ -9,15 +9,20 @@ import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
+import java.io.File;
 import java.io.IOException;
 
 import javax.swing.JButton;
 import javax.swing.JColorChooser;
+import javax.swing.JComboBox;
 import javax.swing.JDialog;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 public class Main {
@@ -71,10 +76,24 @@ public class Main {
 				
 				
 				JPanel controls = new JPanel();
-				controls.setLayout(new GridLayout());
+				controls.setLayout(new GridLayout(0, 10));
 				
+				String [] pixelSizes = new String[64];
+				for (int i = 0; i < pixelSizes.length; i++) {
+					pixelSizes[i] = (i + 1) + "";
+				}
+				
+				JComboBox<String> sizeList = new JComboBox<String>(pixelSizes);
+				sizeList.setSelectedIndex(15);
+				
+				controls.add(new JLabel("Pxiel Size"));
+				controls.add(sizeList);
+				
+				content.add(controls, BorderLayout.NORTH);
+
 				JPanel buttons = new JPanel();
 				buttons.setLayout(new BorderLayout());
+				
 				
 				content.add(buttons, BorderLayout.SOUTH);
 				
@@ -85,14 +104,35 @@ public class Main {
 					
 					@Override
 					public void actionPerformed(ActionEvent e) {
+						
+						String err = expDrawer.canSave();
+						if(err != null) {
+							JOptionPane.showMessageDialog(dialog,
+									err,
+								    "Error",
+								    JOptionPane.WARNING_MESSAGE);
+							return;
+						}
+						
+						JFileChooser fileChooser = new JFileChooser();
+						fileChooser.setDialogTitle("Specify a file to save");
+						 
+						int userSelection = fileChooser.showSaveDialog(dialog);
+						 
+						if (userSelection == JFileChooser.APPROVE_OPTION) {
+						    File fileToSave = fileChooser.getSelectedFile();
+						    System.out.println("Save as file: " + fileToSave.getAbsolutePath());
+						    
 						try {
-							boolean res = expDrawer.save(32, "C:\\Users\\User\\Pictures\\darkWorldmages\\image" + System.currentTimeMillis() +".png");
+							boolean res = expDrawer.save(sizeList.getSelectedIndex() + 1,
+									fileToSave.getAbsolutePath());
 							if(res) {
 								dialog.setVisible(false);
 							}
 						} catch (IOException e1) {
 							e1.printStackTrace();
 						}
+					}
 					}
 				});
 				
@@ -108,11 +148,13 @@ public class Main {
 				
 				dialog.setContentPane(content);
 				dialog.pack();
+				dialog.setLocationRelativeTo(null);
 				dialog.setVisible(true);
 			}
 		});
 		menu.add(menuItem);
 		window.setJMenuBar(menuBar);
+		window.setLocationRelativeTo(null);
 		window.setVisible(true);
 	}
 }
