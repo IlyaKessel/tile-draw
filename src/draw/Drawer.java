@@ -8,20 +8,25 @@ import java.awt.Point;
 import java.awt.Stroke;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 import javax.imageio.ImageIO;
 import javax.swing.JPanel;
 import javax.swing.event.MouseInputAdapter;
-import javax.swing.event.MouseInputListener;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class Drawer extends JPanel {
 
+	public static final String EXT = ".pxd";
 	private Color color;
 	private HashMap<Point, Color> points = new HashMap<>();
 
@@ -183,7 +188,6 @@ public class Drawer extends JPanel {
 			if(normilze && startSelect != null && endSelect != null) {
 				int x = Math.min(startSelect.x, endSelect.x);
 				int y = Math.min(startSelect.y, endSelect.y);
-
 				g.fillRect((p.x - x) * pixelWidth1, (p.y - y) * pixelWidth1,
 						pixelWidth1, pixelWidth1);
 
@@ -211,6 +215,14 @@ public class Drawer extends JPanel {
 		if(startSelect == null || endSelect == null) {
 			return false;
 		}
+		
+		String jsonStr = serializePoints(false);
+		int i = imageName.lastIndexOf(".");
+		String fileName = imageName.substring(0, i) + EXT;
+		try (PrintWriter out = new PrintWriter(fileName)) {
+		    out.println(jsonStr);
+		}
+		
 		int sizeX = (Math.abs(startSelect.x - endSelect.x) + 1) * pixelSize;
 		int sizeY = (Math.abs(startSelect.y - endSelect.y) + 1) * pixelSize;
 		final BufferedImage res = new BufferedImage( sizeX, sizeY, BufferedImage.TYPE_INT_ARGB );
@@ -219,11 +231,76 @@ public class Drawer extends JPanel {
 		ImageIO.write(res, "png", new File(imageName));
 		return true;
 	}
+	
+	private String serializePoints(boolean all) throws JsonProcessingException {
+		Set<Point> set = points.keySet();
+		HashMap<String, HashMap<String, Integer>> data = new HashMap<>();
+		
+		int minX = 0, minY = 0, maxX = Integer.MAX_VALUE, maxY = Integer.MAX_VALUE;
+		if(!all) {
+			minX = Math.min(startSelect.x, endSelect.x);
+			minY = Math.min(startSelect.y, endSelect.y);
+			
+			maxX = Math.max(startSelect.x, endSelect.x);
+			maxY = Math.max(startSelect.y, endSelect.y);
+		}
+		
+		for (Point p : set) {
+			if(p.x < minX || p.x > maxX ||
+			   p.y < minY || p.y > maxY) {
+				continue;
+			}
+			Color c = points.get(p);
+			HashMap<String, Integer> val = new HashMap<>();
+			val.put("r", c.getRed());
+			val.put("g", c.getGreen());
+			val.put("b", c.getBlue());
+			val.put("a", c.getAlpha());
+			String key = p.x + ":" + p.y; 
+			data.put(key, val);
+
+		}
+		ObjectMapper mapper = new ObjectMapper();
+		return mapper.writeValueAsString(data);
+	}
+	
+	public void loadFile(String filePath) throws Exception{
+		ObjectMapper mapper = new ObjectMapper();
+		Map<?, ?> map = mapper.readValue(Paths.get(filePath).toFile(), Map.class);
+		for (Map.Entry<?, ?> entry : map.entrySet()) {
+			String cords = (String) entry.getKey();
+			Map<String, Integer> clr = (Map<String, Integer>) entry.getValue();
+			String p[] = cords.split(":");
+			int x = Integer.parseInt(p[0]);
+			int y = Integer.parseInt(p[1]);
+			Point point = new Point(x, y);
+			Color c = new Color(clr.get("r"), clr.get("g"), clr.get("b"), clr.get("a"));
+			points.put(point, c);
+			
+//	        System.out.println(entry.getKey() + "=" + entry.getValue());
+	    }
+		repaint();
+	}
 	public String canSave() {
 		if(startSelect == null || endSelect == null) {
 			return "Select area to save";
 		}
 
 		return null;
+	}
+	public boolean saveProj(String fileName) throws Exception {
+		if(!fileName.endsWith(EXT)) {
+			fileName = fileName + EXT;
+		}
+		if(startSelect == null || endSelect == null) {
+			return false;
+		}
+		
+		String jsonStr = serializePoints(true);
+		
+		try (PrintWriter out = new PrintWriter(fileName)) {
+		    out.println(jsonStr);
+		}
+		return true;
 	}
 }

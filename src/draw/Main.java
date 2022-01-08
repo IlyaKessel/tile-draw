@@ -24,6 +24,7 @@ import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class Main {
 
@@ -153,6 +154,59 @@ public class Main {
 			}
 		});
 		menu.add(menuItem);
+		
+		menuItem = new JMenuItem("Load",
+				KeyEvent.VK_T);
+		menuItem.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				JFileChooser fileChooser = new JFileChooser();
+				fileChooser.setFileFilter(new FileNameExtensionFilter(Drawer.EXT, Drawer.EXT.replace(".", "")));
+				int result = fileChooser.showOpenDialog(window);
+				if (result == JFileChooser.APPROVE_OPTION) {
+				    File selectedFile = fileChooser.getSelectedFile();
+				    try {
+						drawer.loadFile(selectedFile.getAbsolutePath());
+					} catch (Exception e1) {
+						e1.printStackTrace();
+						JOptionPane.showMessageDialog(window,
+								e.toString(),
+							    "Error",
+							    JOptionPane.WARNING_MESSAGE);
+					}
+				}
+			}
+			
+		});
+		menu.add(menuItem);
+		
+		menuItem = new JMenuItem("Project Save",
+				KeyEvent.VK_T);
+		menuItem.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				JFileChooser fileChooser = new JFileChooser();
+				fileChooser.setDialogTitle("Specify a file to save");
+				 
+				int userSelection = fileChooser.showSaveDialog(window);
+				 
+				if (userSelection == JFileChooser.APPROVE_OPTION) {
+				    File fileToSave = fileChooser.getSelectedFile();
+				    System.out.println("Save as file: " + fileToSave.getAbsolutePath());
+				    
+				try {
+					drawer.saveProj(
+							fileToSave.getAbsolutePath());
+				} catch (Exception e1) {
+					e1.printStackTrace();
+				}
+			}
+			
+		}});
+		menu.add(menuItem);
+		
 		window.setJMenuBar(menuBar);
 		window.setLocationRelativeTo(null);
 		window.setVisible(true);
