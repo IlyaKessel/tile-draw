@@ -1,11 +1,11 @@
 package draw;
 
+
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dialog;
 import java.awt.Dimension;
 import java.awt.GridLayout;
-import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -26,22 +26,83 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import draw.ProjectView.IProjectViewChange;
+import draw.RecentColorsPicker.IColorChange;
+
 public class Main {
 
 	private static Color curentColor = Color.BLACK;
 	private static Drawer drawer = null;
+	private static ProjectView projView;
+	private static IProjectViewChange ipch = new IProjectViewChange() {
+		
+		@Override
+		public void selectedFileChanged(String selectedFile) {
+			try {
+				drawer.setSelectedFile(selectedFile);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+	};
+	private static RecentColorsPicker recentColorsPicker;
+	
+	
+	
+	
 	public static void main(String[] args) {
 		JFrame window = new JFrame();
 		window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		window.setSize(new Dimension(1024, 800));
+		window.setSize(new Dimension(1424, 800));
 		window.setLayout(new BorderLayout());
+		
+		JPanel contenPane = new JPanel(new BorderLayout());
+		window.setContentPane(contenPane);
 		drawer = new Drawer(curentColor);
-		window.setContentPane(drawer);
+		contenPane.add(drawer, BorderLayout.CENTER);
+		
+		JPanel left = new JPanel(new BorderLayout());
+		left.setPreferredSize(new Dimension(200, 1));
+		contenPane.add(left, BorderLayout.WEST);
+		
+		projView = new ProjectView(ipch );
+		left.add(projView , BorderLayout.CENTER);
+		
+		JPanel right = new JPanel(null);
+		right.setPreferredSize(new Dimension(200, 1));
+		recentColorsPicker = new RecentColorsPicker(new IColorChange() {
+			
+			@Override
+			public void colorChanged(Color color) {
+				drawer.setColor(color);
+			}
+		});
+		right.add(recentColorsPicker);
+		contenPane.add(right, BorderLayout.EAST);
+		
 		
 		JMenuBar menuBar = new JMenuBar();
 		JMenu menu = new JMenu("File");
 		menuBar.add(menu);
-		JMenuItem menuItem = new JMenuItem("Color",
+		
+		
+		JMenuItem menuItem = new JMenuItem("New File",
+				KeyEvent.VK_T);
+		menuItem.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				try {
+					projView.createNewFile();
+				} catch (Exception e1) {
+					e1.printStackTrace();
+				}
+			
+		}});
+		menu.add(menuItem);
+		
+		
+		menuItem = new JMenuItem("Color",
 				KeyEvent.VK_T);
 		menuItem.addActionListener(new ActionListener() {
 			
@@ -53,6 +114,7 @@ public class Main {
 	                     curentColor);
 				if(newColor != null) {
 					curentColor = newColor;
+					recentColorsPicker.addColor(curentColor);
 				}
 				drawer.setColor(curentColor);
 				
@@ -71,7 +133,7 @@ public class Main {
 				JDialog dialog = new JDialog(window, "", Dialog.ModalityType.DOCUMENT_MODAL);
 				JPanel content = new JPanel();
 				content.setLayout(new BorderLayout());
-				Drawer expDrawer = new Drawer(drawer.getPoints());
+				Drawer expDrawer = new Drawer(drawer.getPoints(), true);
 				expDrawer.setPreferredSize(new Dimension(window.getSize()));
 				content.add(expDrawer, BorderLayout.CENTER);
 				

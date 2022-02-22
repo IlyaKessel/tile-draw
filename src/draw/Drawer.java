@@ -42,6 +42,12 @@ public class Drawer extends JPanel {
 			points.put(new Point(x, y), color);
 
 			Drawer.this.repaint();
+			try {
+				saveCurrentFile();
+			} catch (Exception e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
 
 
 		}
@@ -68,6 +74,12 @@ public class Drawer extends JPanel {
 				points.remove(new Point(x, y));
 			}
 			Drawer.this.repaint();
+			try {
+				saveCurrentFile();
+			} catch (Exception e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
 		}
 	};
 
@@ -110,6 +122,7 @@ public class Drawer extends JPanel {
 			Drawer.this.repaint();
 		}
 	};
+	private boolean forExport;
 	public Drawer(Color color) {
 		this.color = color;
 
@@ -117,8 +130,9 @@ public class Drawer extends JPanel {
 		addMouseListener(drawAdapter);
 
 	}
-	public Drawer(HashMap<Point, Color> points) {
+	public Drawer(HashMap<Point, Color> points, boolean forExport) {
 		this.points = points;
+		this.forExport = forExport;
 		addMouseMotionListener(exportMotioListener);
 		addMouseListener(exportAdapter);
 	}
@@ -127,9 +141,13 @@ public class Drawer extends JPanel {
 	private int pixelWidth = 32;
 	private int curCellX;
 	private int curCellY;
+	private String selectedFile;
 	@Override
 	protected void paintComponent(Graphics g) {
 		super.paintComponent(g);
+		if(this.selectedFile == null && ! forExport) {
+			return;
+		}
 		g.setColor(Color.WHITE);
 		g.fillRect(0, 0, getWidth(), getHeight());
 		g.setColor(Color.LIGHT_GRAY);
@@ -232,6 +250,18 @@ public class Drawer extends JPanel {
 		return true;
 	}
 	
+	private void saveCurrentFile() throws Exception {
+		if(this.selectedFile == null) {
+			return;
+		}
+		
+		String jsonStr = serializePoints(true);
+		try (PrintWriter out = new PrintWriter(this.selectedFile)) {
+		    out.println(jsonStr);
+		}
+
+	}
+	
 	private String serializePoints(boolean all) throws JsonProcessingException {
 		Set<Point> set = points.keySet();
 		HashMap<String, HashMap<String, Integer>> data = new HashMap<>();
@@ -302,5 +332,10 @@ public class Drawer extends JPanel {
 		    out.println(jsonStr);
 		}
 		return true;
+	}
+	public void setSelectedFile(String selectedFile) throws Exception {
+		this.selectedFile = selectedFile;
+		points.clear();
+		loadFile(selectedFile);
 	}
 }
